@@ -4,24 +4,12 @@ from core.analyzer import Analyzer
 from core.common.formatter import Formatter
 from core.optimizers.optimizer import Optimizer
 from core.transalators.functionTranslator import FunctionTranslator
+from io import Reader, Writer
 
 
 def main():
 
-    text = """
-define dso_local noundef i32 @main() #0 {
-  %1 = alloca i32, align 4
-  %2 = alloca i32, align 4
-  %3 = alloca i32, align 4
-  store i32 0, ptr %1, align 4
-  store i32 5, ptr %2, align 4
-  store i32 4, ptr %3, align 4
-  %4 = load i32, ptr %2, align 4
-  %5 = load i32, ptr %3, align 4
-  %6 = add nsw i32 %4, %5
-  ret i32 %6
-}
-    """
+    text = Reader("main.ll").read()
 
     tokenizer = Tokenizer()
     tokens = tokenizer.tokenize(text)
@@ -33,15 +21,15 @@ define dso_local noundef i32 @main() #0 {
     lines = analyzer.analyze_to_lines(tokens)
     functions = analyzer.analyze_to_functions(lines)
     translator = FunctionTranslator()
-    assembler_code = translator.translate(functions)
-    print(str(assembler_code))
+    assembler = translator.translate(functions)
+    assembler_code = Formatter.format(assembler.lines)
+    Writer("main_without_optimization.ll").write(assembler_code)
 
     opt = Optimizer()
-    commands = opt.optimize(assembler_code.lines_to_optimize)
-    print()
-    print("=========AFTER OPTIMIZATION=============")
+    commands = opt.optimize(assembler.lines_to_optimize)
     assembler_code = Formatter.format_commands(commands)
-    print("\n".join(assembler_code))
+
+    Writer("main.ll").write(assembler_code)
 
 
 if __name__ == "__main__":
